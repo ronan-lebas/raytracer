@@ -2,11 +2,13 @@ mod vec3;
 mod ray;
 mod hittable;
 mod sphere;
+mod material;
 
 use vec3::Vec3;
 use ray::Ray;
 use hittable::Hittable;
 use sphere::Sphere;
+use material::Material;
 use serde::Deserialize;
 use core::f64;
 use std::fs::File;
@@ -53,18 +55,27 @@ fn ray_color(ray: &Ray, world: &World) -> Vec3 {
         // Extract components of the HitRecord:
         let p: Vec3 = _rec.p;
         let normal: Vec3 = _rec.normal;
-        let object_color: Vec3 = _rec.color;
+        let object_material: &Material = _rec.material;
 
-        // Shoot a new ray from the impact point going toward the light source.
-        let origin: Vec3 = p + normal * eps;
-        let direction: Vec3 = world.light.position - origin;
-        let distance_to_light: f64 = direction.length();
-        let direction_unit: Vec3 = direction.unit_vector();
-        let second_ray: Ray = Ray::new(origin, direction_unit);
-        if let Some(_second_rec) = world.hit(&second_ray, eps, distance_to_light) {
-            return Vec3::new(0.0, 0.0, 0.0);
+        return match object_material {
+            &Material::Matte {color} => {
+                // Shoot a new ray from the impact point going toward the light source.
+                let origin: Vec3 = p + normal * eps;
+                let direction: Vec3 = world.light.position - origin;
+                let distance_to_light: f64 = direction.length();
+                let direction_unit: Vec3 = direction.unit_vector();
+                let second_ray: Ray = Ray::new(origin, direction_unit);
+                if let Some(_second_rec) = world.hit(&second_ray, eps, distance_to_light) {
+                    return Vec3::new(0.0, 0.0, 0.0);
+                }
+                color * f64::max(0.0, normal.dot(&direction_unit))
+            }
+            &Material::Glass { index_of_refraction } => Vec3::new(0.0, 0.0, 0.0), //TODO
+            &Material::Mirror => {
+                let new_ray: Ray = Ray::new(p, Vec3::reflect(&ray.direction, &normal));
+                ray_color(&new_ray, world)
+            }
         }
-        return object_color * f64::max(0.0, normal.dot(&direction_unit));
     }
 
     // If we hit nothing, draw the sky background

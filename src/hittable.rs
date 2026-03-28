@@ -1,14 +1,15 @@
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use crate::material::Material;
 
 /// Records the details of a successful ray intersection.
 /// Contains the point of contact, the normal vector at that point,
 /// the `t` value along the ray where the hit occurred, and the color of the object.
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub p: Vec3,
     pub normal: Vec3,
     pub t: f64,
-    pub color: Vec3,
+    pub material: &'a Material,
 }
 
 /// A trait for any object that can be hit by a ray.

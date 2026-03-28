@@ -2,6 +2,7 @@ use serde::Deserialize;
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::hittable::{HitRecord, Hittable};
+use crate::material::Material;
 
 /// Represents a sphere in 3D space.
 /// Deserialized directly from our scene.json file.
@@ -9,7 +10,7 @@ use crate::hittable::{HitRecord, Hittable};
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
-    pub color: Vec3,
+    pub material: Material,
 }
 
 impl Hittable for Sphere {
@@ -57,7 +58,7 @@ impl Hittable for Sphere {
         let p: Vec3 = _ray.at(t_star);
         let normal: Vec3 = (p - self.center).unit_vector();
 
-        Some(HitRecord { p, normal, t: (t_star), color: self.color })
+        Some(HitRecord { p, normal, t: (t_star), material: &self.material })
     }
 }
 
@@ -67,15 +68,55 @@ mod tests {
 
     #[test]
     fn test_sphere_deserialization() {
-        let json_data = r#"
+        let json_data_matte = r#"
         {
             "center": { "x": 1.0, "y": 2.0, "z": 3.0 },
             "radius": 4.5,
-            "color": { "x": 0.0, "y": 0.0, "z": 0.0}
+            "material": {
+                "type": "Matte",
+                "color": { "x": 0.0, "y": 0.0, "z": 0.0}
+            }
         }"#;
 
-        let sphere: Sphere = serde_json::from_str(json_data).unwrap();
-        assert_eq!(sphere.center.x, 1.0);
-        assert_eq!(sphere.radius, 4.5);
+        let json_data_mirror = r#"
+        {
+            "center": { "x": 1.0, "y": 2.0, "z": 3.0 },
+            "radius": 4.5,
+            "material": {
+                "type": "Mirror"
+            }
+        }"#;
+
+        let json_data_glass = r#"
+        {
+            "center": { "x": 1.0, "y": 2.0, "z": 3.0 },
+            "radius": 4.5,
+            "material": {
+                "type": "Glass",
+                "index_of_refraction": 1.0
+            }
+        }"#;
+
+        let sphere_matte: Sphere = serde_json::from_str(json_data_matte).unwrap();
+        assert_eq!(sphere_matte.center.x, 1.0);
+        assert_eq!(sphere_matte.radius, 4.5);
+        match sphere_matte.material {
+            Material::Matte { color } => {
+                assert_eq!(color.x, 0.0);
+            },
+            _ => panic!("Expected Matte material"),
+        }
+        let sphere_mirror: Sphere = serde_json::from_str(json_data_mirror).unwrap();
+        match sphere_mirror.material {
+            Material::Mirror => {},
+            _ => panic!("Expected Mirror material"),
+        }
+        let sphere_glass: Sphere = serde_json::from_str(json_data_glass).unwrap();
+        match sphere_glass.material {
+            Material::Glass { index_of_refraction } => {
+                assert_eq!(index_of_refraction, 1.0);
+            },
+            _ => panic!("Expected Glass material"),
+        }
     }
 }

@@ -34,6 +34,11 @@ impl Vec3 {
     pub fn dot(&self, other: &Self) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
+
+    /// Reflects a vector v around a normal vector n.
+    pub fn reflect(v: &Self, n: &Self) -> Self {
+        *v + (*n * (-2.0 * n.dot(v)))
+    }
 }
 
 impl std::ops::Add for Vec3 {
